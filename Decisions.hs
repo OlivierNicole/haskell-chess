@@ -31,7 +31,7 @@ value Bishop = 300
 value Rook = 500
 value Queen = 900
 value King = 40000 -- The sum of other heuristic criteria is assumed to be
-		   -- smaller than 1.000
+                   -- smaller than 1.000
 
 -- Returns a heuristic score representing the advantage of the 
 -- side given in argument.
@@ -70,7 +70,7 @@ omit f pot (l : ls) =
    m = minimum l
 
 minleq :: (a -> a -> Bool) -> [a] -> a -> Bool
-minleq f [] pot = False
+minleq _ [] _ = False
 minleq f (x : xs) pot = f x pot || minleq f xs pot
 
 minimize :: Tree Int -> Int
