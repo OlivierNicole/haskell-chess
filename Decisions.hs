@@ -81,7 +81,8 @@ minimize' (Node _ children@(_:_)) = mapMinMax (>=) $ map maximize' children
 minimize' (Node n []) = [n]
 
 -- Evaluates the advantage of the side given in argument by exploring
--- the game tree up to a given depth.
+-- the game tree up to a given depth. A depth of zero computes the
+-- static advantage (i.e., no tree generation).
 advantage :: Color -> Int -> ChessBoard -> Int
 advantage col depth cb = maximize . fmap (static col) .
    prune depth . gameTree $ cb
