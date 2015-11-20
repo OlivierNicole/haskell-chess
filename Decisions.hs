@@ -53,6 +53,7 @@ maximize' :: Tree Int -> [Int]
 maximize' (Node _ children@(_:_)) = mapMinMax (<=) $ map minimize' children
 maximize' (Node n _) = [n]
 
+-- LOOKS FALSE
 -- Returns the maximum among the minima of several lists, with
 -- optimisations, if the function given in argument is (<=). If it is
 -- (>=), then returns the minimum among the maxima of the lists.
