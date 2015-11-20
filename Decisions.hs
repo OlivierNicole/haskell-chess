@@ -46,12 +46,25 @@ static color cb = sum $ map signedValue $ toList cb
    signedValue (Just (Piece col t)) =
       (if color == col then id else negate) $ value t
 
+-- | Returns the maximum gain possible on a node using the Alpha-Beta algorithm.
+-- Only the leaves are evaluated.
 maximize :: Tree Int -> Int
 maximize = maximum . maximize'
 
+-- | Returns the minimum gain possible on a node using the Alpha-Beta algorithm.
+-- Only the leaves are evaluated.
+minimize :: Tree Int -> Int
+minimize = minimum . minimize'
+
+-- Returns the list of possible gains on a node using the Alpha-Beta algorithm.
+-- Only the leaves are evaluated.
 maximize' :: Tree Int -> [Int]
 maximize' (Node _ children@(_:_)) = mapMinMax (<=) $ map minimize' children
 maximize' (Node n _) = [n]
+
+minimize' :: Tree Int -> [Int]
+minimize' (Node _ children@(_:_)) = mapMinMax (>=) $ map maximize' children
+minimize' (Node n []) = [n]
 
 -- LOOKS FALSE
 -- Returns the maximum among the minima of several lists, with
@@ -73,13 +86,6 @@ omit f pot (l : ls) =
 minleq :: (a -> a -> Bool) -> [a] -> a -> Bool
 minleq _ [] _ = False
 minleq f (x : xs) pot = f x pot || minleq f xs pot
-
-minimize :: Tree Int -> Int
-minimize = minimum . minimize'
-
-minimize' :: Tree Int -> [Int]
-minimize' (Node _ children@(_:_)) = mapMinMax (>=) $ map maximize' children
-minimize' (Node n []) = [n]
 
 -- Evaluates the advantage of the side given in argument by exploring
 -- the game tree up to a given depth. A depth of zero computes the
