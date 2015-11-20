@@ -46,25 +46,38 @@ static color cb = sum $ map signedValue $ toList cb
    signedValue (Just (Piece col t)) =
       (if color == col then id else negate) $ value t
 
--- | Returns the maximum gain possible on a node using the Alpha-Beta algorithm.
--- Only the leaves are evaluated.
+{-
+-- | Returns the maximum gain possible, given a starting node, using the
+-- Alpha-Beta algorithm.  Only the values of leaves are evaluated.
 maximize :: Tree Int -> Int
 maximize = maximum . maximize'
 
--- | Returns the minimum gain possible on a node using the Alpha-Beta algorithm.
--- Only the leaves are evaluated.
+-- | Returns the minimum gain possible, given a starting node, using the
+-- Alpha-Beta algorithm.  Only the values of leaves are evaluated.
 minimize :: Tree Int -> Int
 minimize = minimum . minimize'
+-}
 
--- Returns the list of possible gains on a node using the Alpha-Beta algorithm.
--- Only the leaves are evaluated.
+-- Returns the list of possible gains, given a starting Max node, using the
+-- alpha-beta algorithm.  Only the leaves are evaluated.
 maximize' :: Tree Int -> [Int]
-maximize' (Node _ children@(_:_)) = mapMinMax (<=) $ map minimize' children
-maximize' (Node n _) = [n]
+maximize' (Node _ children@(_:_)) = mapMin $ map minimize' children
+maximize' (Node n []) = [n]
 
+-- Returns the list of possible gains, given a starting Min node, using the
+-- alpha-beta algorithm.  Only the leaves are evaluated.
 minimize' :: Tree Int -> [Int]
-minimize' (Node _ children@(_:_)) = mapMinMax (>=) $ map maximize' children
+minimize' (Node _ children@(_:_)) = mapMax $ map maximize' children
 minimize' (Node n []) = [n]
+
+-- Alpha-beta-optimized version of 'map minimum'. 'mapMin' is such that :
+-- 'maximum (mapMin l) == maximum (map minimum l)'
+mapMin [] = []
+mapMin (l:ls) = m : mapMin' ls
+   where
+   mapMin' :: Ord a => a -> [[a]] -> [a]
+   mapMin' _ [] = []
+   mapMin' biggestMinSoFar (l:ls) =
 
 -- LOOKS FALSE
 -- Returns the maximum among the minima of several lists, with
@@ -87,9 +100,9 @@ minleq :: (a -> a -> Bool) -> [a] -> a -> Bool
 minleq _ [] _ = False
 minleq f (x : xs) pot = f x pot || minleq f xs pot
 
--- Evaluates the advantage of the side given in argument by exploring
--- the game tree up to a given depth. A depth of zero computes the
--- static advantage (i.e., no tree generation).
+-- | Evaluate the advantage of player 'col' by exploring the game tree up to a
+-- given depth, assuming 'col' is to play. A depth of zero computes the static
+-- advantage (i.e., no tree generation).
 advantage :: Color -> Int -> ChessBoard -> Int
 advantage col depth cb = maximize . fmap (static col) .
    prune depth . gameTree $ cb
