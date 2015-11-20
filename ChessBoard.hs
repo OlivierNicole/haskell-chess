@@ -28,12 +28,12 @@ data PieceType =
    deriving (Eq)
 
 instance Show PieceType where
-   show Pawn = "p"
+   show Pawn   = "p"
    show Knight = "n"
    show Bishop = "b"
-   show Rook = "r"
-   show Queen = "q"
-   show King = "k"
+   show Rook   = "r"
+   show Queen  = "q"
+   show King   = "k"
 
 data Piece = Piece !Color !PieceType
    deriving Eq
@@ -100,12 +100,12 @@ initialPosition = ChessBoard {
    , nextMove = White
    }
    where
-   whiteRearRow = map (Just . Piece White) rearRow
+   whiteRearRow  = map (Just . Piece White) rearRow
    whiteFrontRow = replicate 8 $ Just $ Piece White Pawn
-   emptyRow = replicate 8 Nothing
+   emptyRow      = replicate 8 Nothing
    blackFrontRow = replicate 8 $ Just $ Piece Black Pawn
-   blackRearRow = map (Just . Piece Black) rearRow
-   rearRow = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
+   blackRearRow  = map (Just . Piece Black) rearRow
+   rearRow       = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
 at :: ChessBoard -> Position -> Maybe Piece
 at !cb !p

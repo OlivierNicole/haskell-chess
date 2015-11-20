@@ -15,10 +15,9 @@ import Control.Arrow ( (***) )
 
 legal :: ChessBoard -> Move -> Bool
 legal cb m@(Move dep arr) = case cb `at` dep of
-                               Nothing -> False
-                               Just (Piece col _) ->
-                                  nextMove cb == col &&
-                                  m `elem` possibleMoves cb
+   Nothing -> False
+   Just (Piece col _) -> nextMove cb == col
+                      && m `elem` possibleMoves cb
 legal _ _ = True -- TODO
 
 
@@ -27,21 +26,19 @@ legal _ _ = True -- TODO
 -- function.
 doMove :: ChessBoard -> Move -> ChessBoard
 doMove cb m@(Move dep arr) = case at cb dep of
-                                Nothing -> cb
-                                Just p@(Piece col _) ->
-                                   if col /= nextMove cb
-                                      then error $ "not your turn bitch!\n"
-                                        ++ show m ++ show col ++ show
-                                        (nextMove cb)
-                                      else switch $ remove dep $ update arr p cb
+   Nothing              -> cb
+   Just p@(Piece col _) -> if col /= nextMove cb
+                           then error $ "not your turn bitch!\n" ++
+                             show m ++ show col ++ show (nextMove cb)
+                           else switch $ remove dep $ update arr p cb
 
 doMove cb _ = cb
 
 possibleMoves :: ChessBoard -> [Move]
 possibleMoves cb = concatMap
-                         (\n -> let pos = fromIndex n in
-                                moves pos $ at cb pos)
-                         [0..63]
+                   (\n -> let pos = fromIndex n in
+                          moves pos $ at cb pos)
+                   [0..63]
    where
    color = nextMove cb
    moves :: Position -> Maybe Piece -> [Move]
@@ -52,9 +49,8 @@ possibleMoves cb = concatMap
 
    moves' :: Position -> PieceType -> Color -> [Move]
    moves' pos@(f, r) Pawn color = concatMap toMove $
-         filter canTake (filter valid [(f - 1, next r), (f + 1, next
-         r)])
-         ++ filter valid advance
+         filter canTake (filter valid [(f - 1, next r), (f + 1, next r)]) ++
+         filter valid advance
       where
       lastRow = if color == White then 7 else 0
       sndRow = if color == White then 1 else 6
