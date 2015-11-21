@@ -42,11 +42,16 @@ instance Show Piece where
    show (Piece White t) = map Data.Char.toUpper $ show t
    show (Piece Black t) = show t
 
--- The ChessBoard type represents a chess board under the form of a
--- Vector (Maybe Piece).
-data ChessBoard = ChessBoard { toVector :: !(V.Vector (Maybe Piece)),
-                               nextMove :: !Color }
+-- | Representation of a chess position.
+data ChessBoard = ChessBoard
+   { -- | Transforms a ChessBoard into a 'Vector' of square (either populated
+     -- or empty), index 0 being square a1 and index 63 being square h8.
+     toVector :: !(V.Vector (Maybe Piece))
+     -- | Player making the next move.
+   , nextMove :: !Color
+   }
 
+-- | Change player making the next move.
 switch :: ChessBoard -> ChessBoard
 switch !cb = ChessBoard { toVector = toVector cb,
                           nextMove = other $ nextMove cb }
@@ -83,12 +88,14 @@ instance Show ChessBoard where
          | otherwise = h `V.cons` slice8 t
             where (h, t) = V.splitAt 8 v
 
+-- | An empty chess board.
 emptyBoard :: Color -> ChessBoard
 emptyBoard !firstPlayer = ChessBoard {
    toVector = V.replicate 64 Nothing
  , nextMove = firstPlayer
  }
 
+-- | Classical initial position of a chess game.
 initialPosition :: ChessBoard
 initialPosition = ChessBoard {
    toVector = V.fromList $ concat $
@@ -107,21 +114,22 @@ initialPosition = ChessBoard {
    blackRearRow  = map (Just . Piece Black) rearRow
    rearRow       = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
+-- | Access to a position in O(1).
 at :: ChessBoard -> Position -> Maybe Piece
 at !cb !p
    | i < 0 || i > 63 = Nothing
    | otherwise = toVector cb V.! i
    where i = toIndex p
 
--- Yields a ChessBoard with a new piece inserted at the given
--- position. If the position is not valid, this function does nothing.
+-- | Put a piece on the chess board. If the position is not valid, this
+-- function does nothing.
 update :: Position -> Piece -> ChessBoard -> ChessBoard
-update !pos !piece !cb = ChessBoard (toVector cb V.// [(i, Just piece)])
-   $ nextMove cb
+update !pos !piece !cb =
+   cb { toVector = toVector cb V.// [(i, Just piece)] }
    where
    i = toIndex pos
 
--- Returns a ChessBoard with an empty square at the given position.
+-- | Returns a ChessBoard with an empty square at the given position.
 remove :: Position -> ChessBoard -> ChessBoard
 remove !pos !cb
    | i < 0 || i > 63 = cb
