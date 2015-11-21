@@ -27,6 +27,7 @@ instance Show Move where
    show (QueenSideCastling c) = "queenside castling by " ++ show c
    show (PawnPromotion m t) = show m ++ ": pawn promoted to " ++ show t
 
+-- TODO: implement parsing of special moves.
 instance Read Move where
    readsPrec _ (f : r : f' : r' : tail) =
       if valid pos && valid pos'
