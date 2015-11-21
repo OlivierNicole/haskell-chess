@@ -82,12 +82,11 @@ possibleMoves cb = concatMap
              ) destinations
       where
       destinations = filter valid
-         [(f - 2, r - 1), (f - 2, r + 1), (f - 1, r - 2), (f - 1, r + 2),
-          (f + 1, r - 2), (f + 1, r + 2), (f + 2, r - 1), (f + 2, r + 1)]
+         [(f + x, r + y) | x <- [-1,-2,1,2], y <- [-1,-2,1,2]]
 
    moves' pos Bishop color = map (Move pos) $
       reachable cb color pos
-      [(pred, pred), (pred, succ), (succ, pred), (succ, succ)]
+      [bimap x y | x <- [pred, succ], y <- [pred, succ]]
 
    moves' pos Rook color = map (Move pos) $
       reachable cb color pos
@@ -116,7 +115,7 @@ possibleMoves cb = concatMap
 -- piece is included since it may be eaten).
 explore :: ChessBoard -> Color -> Position -> (Position -> Position)
    -> [Position]
-explore cb color dep translation_fun = explore' dep []
+explore cb color dep translate = explore' dep []
    where
    explore' :: Position -> [Position] -> [Position]
    explore' p acc
@@ -130,15 +129,14 @@ explore cb color dep translation_fun = explore' dep []
                     Just (Piece col _) -> if col == color
                                              then acc
                                              else pnext : acc
-      where pnext = translation_fun p
+      where pnext = translate p
 
 -- Helper function
--- yields a list of positions reachable by _explore_ from a given
+-- yields a list of positions reachable by 'explore' from a given
 -- departure square, with a given set of translation functions.
-reachable :: ChessBoard -> Color -> Position ->
-   [(Int -> Int, Int -> Int)] -> [Position]
-reachable cb color pos = concatMap
-   (\ (f, g) -> explore cb color pos (f *** g))
+reachable :: ChessBoard -> Color -> Position -> [Position -> Position]
+          -> [Position]
+reachable cb color pos = concatMap (explore cb color pos)
 
 gameTree :: ChessBoard -> GameTree
 gameTree = genTree children
