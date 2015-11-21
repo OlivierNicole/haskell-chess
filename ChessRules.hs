@@ -13,6 +13,8 @@ import Position
 import Data.Maybe (isNothing)
 import Control.Arrow ( (***) )
 
+-- | Decide whether a move is legal.
+-- TODO: implement for special moves.
 legal :: ChessBoard -> Move -> Bool
 legal cb m@(Move dep arr) = case cb `at` dep of
    Nothing -> False
@@ -21,9 +23,9 @@ legal cb m@(Move dep arr) = case cb `at` dep of
 legal _ _ = True -- TODO
 
 
--- doMove does not check the validity of the move passed as its
--- argument. Illegal or absurd moves may be performed with this
--- function.
+-- | Perform a move. 'doMove' does not check the validity of the move,
+-- so illegal or absurd moves may be performed with this function.
+-- TODO: implement for special moves.
 doMove :: ChessBoard -> Move -> ChessBoard
 doMove cb m@(Move dep arr) = case at cb dep of
    Nothing              -> cb
@@ -34,6 +36,8 @@ doMove cb m@(Move dep arr) = case at cb dep of
 
 doMove cb _ = cb
 
+-- | Generate all legal moves that may be played from a given position.
+-- TODO: forbid self-checking and generate special moves.
 possibleMoves :: ChessBoard -> [Move]
 possibleMoves cb = concatMap
                    (\n -> let pos = fromIndex n in
@@ -107,7 +111,7 @@ possibleMoves cb = concatMap
 -- Helper function
 -- when given a depature position and a translation function, explore
 -- yields a list of all positions it visited before it fell out of the
--- chess board, or encountered a piece of the color passed as argument, 
+-- chess board, or encountered a piece of the color passed as argument,
 -- or a piece of the opposite color (in that case the square of that
 -- piece is included since it may be eaten).
 explore :: ChessBoard -> Color -> Position -> (Position -> Position)
