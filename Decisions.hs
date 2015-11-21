@@ -46,18 +46,6 @@ static color cb = sum $ map signedValue $ toList cb
    signedValue (Just (Piece col t)) =
       (if color == col then id else negate) $ value t
 
-{-
--- | Returns the maximum gain possible, given a starting node, using the
--- Alpha-Beta algorithm.  Only the values of leaves are evaluated.
-maximize :: Tree Int -> Int
-maximize = maximum . maximize'
-
--- | Returns the minimum gain possible, given a starting node, using the
--- Alpha-Beta algorithm.  Only the values of leaves are evaluated.
-minimize :: Tree Int -> Int
-minimize = minimum . minimize'
--}
-
 -- Returns the list of possible gains, given a starting Max node, using the
 -- alpha-beta algorithm.  Only the leaves are evaluated.
 maximize' :: Tree Int -> [Int]
