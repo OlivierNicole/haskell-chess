@@ -71,41 +71,53 @@ minimize' (Node _ children@(_:_)) = mapMax $ map maximize' children
 minimize' (Node n []) = [n]
 
 -- Alpha-beta-optimized version of 'map minimum'. 'mapMin' is such that :
--- 'maximum (mapMin l) == maximum (map minimum l)'
+-- 'maximum (mapMin l) == maximum (map minimum l)'. This is the only
+-- guarantee on the output of 'mapMin'.
+mapMin :: (Ord a) => [[a]] -> [a]
 mapMin [] = []
-mapMin (l:ls) = m : mapMin' ls
-   where
-   mapMin' :: Ord a => a -> [[a]] -> [a]
-   mapMin' _ [] = []
-   mapMin' biggestMinSoFar (l:ls) =
-
--- LOOKS FALSE
--- Returns the maximum among the minima of several lists, with
--- optimisations, if the function given in argument is (<=). If it is
--- (>=), then returns the minimum among the maxima of the lists.
-mapMinMax :: (Ord a) => (a -> a -> Bool) -> [[a]] -> [a]
-mapMinMax f (l : ls) = m : omit f m ls
-   where m = minimum l
-
-omit :: (Ord a) => (a -> a -> Bool) -> a -> [[a]] -> [a]
-omit f pot [] = []
-omit f pot (l : ls) =
-   if minleq f l pot
-      then omit f pot ls
-      else m : omit f m ls
+mapMin (l:ls) = m : mapMin' m ls
    where
    m = minimum l
+   mapMin' :: (Ord a) => a -> [[a]] -> [a]
+   mapMin' _ [] = []
+   mapMin' biggestMinSoFar (l:ls)
+      | thisMin > biggestMinSoFar = thisMin : mapMin' thisMin ls
+      | otherwise                 = thisMin : mapMin' biggestMinSoFar ls
+      where thisMin = minGEq biggestMinSoFar l
+   -- 'minGEq m l' is 'minimum l' if that minimum is greater or equal to m,
+   -- otherwise it is 'm'.
+   minGEq :: (Ord a) => a -> [a] -> a
+   minGEq _ [x] = x
+   minGEq m (x:y:xs) | x <= m    = m
+                     | otherwise = minGEq m (min x y : xs)
 
-minleq :: (a -> a -> Bool) -> [a] -> a -> Bool
-minleq _ [] _ = False
-minleq f (x : xs) pot = f x pot || minleq f xs pot
+-- Alpha-beta-optimized version of 'map maximum'. 'mapMax' is such that :
+-- 'minimum (mapMax l) == minimum (map maximum l)'. This is the only
+-- guarantee on the output of 'mapMax'.
+mapMax :: (Ord a) => [[a]] -> [a]
+mapMax [] = []
+mapMax (l:ls) = m : mapMax' m ls
+   where
+   m = maximum l
+   mapMax' :: (Ord a) => a -> [[a]] -> [a]
+   mapMax' _ [] = []
+   mapMax' smallestMaxSoFar (l:ls)
+      | thisMax > smallestMaxSoFar = thisMax : mapMax' thisMax ls
+      | otherwise                  = thisMax : mapMax' smallestMaxSoFar ls
+      where thisMax = maxLEq smallestMaxSoFar l
+   -- 'maxLEq m l' is 'maximum l' if that maximum is lesser or equal to m,
+   -- otherwise it is 'm'.
+   maxLEq :: (Ord a) => a -> [a] -> a
+   maxLEq _ [x] = x
+   maxLEq m (x:y:xs) | x >= m    = m
+                     | otherwise = maxLEq m (max x y : xs)
 
 -- | Evaluate the advantage of player 'col' by exploring the game tree up to a
 -- given depth, assuming 'col' is to play. A depth of zero computes the static
 -- advantage (i.e., no tree generation).
 advantage :: Color -> Int -> ChessBoard -> Int
-advantage col depth cb = maximize . fmap (static col) .
-   prune depth . gameTree $ cb
+advantage col depth = maximum . maximize' . fmap (static col) .
+                      prune depth . gameTree
 
 bestMove :: Int -> ChessBoard -> Move
 bestMove n cb = minimumBy
