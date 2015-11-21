@@ -119,8 +119,11 @@ advantage :: Color -> Int -> ChessBoard -> Int
 advantage col depth = maximum . maximize' . fmap (static col) .
                       prune depth . gameTree
 
+-- | Select the best legal move in a given position, exploring the game tree to
+-- a given depth. A depth of zero means that only the immediate possible boards
+-- are generated and statically evaluated.
 bestMove :: Int -> ChessBoard -> Move
-bestMove n cb = minimumBy
-   (compare `on` (advantage (other $ nextMove cb) n . doMove cb)) $
+bestMove depth cb = minimumBy
+   (compare `on` (advantage (other $ nextMove cb) depth . doMove cb)) $
    possibleMoves cb
 
