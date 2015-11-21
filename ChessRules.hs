@@ -11,7 +11,8 @@ import GameTree
 import Color
 import Position
 import Data.Maybe (isNothing)
-import Control.Arrow ( (***) )
+import CartesianProduct
+import Data.Bifunctor (bimap)
 
 -- | Decide whether a move is legal.
 -- TODO: implement for special moves.
@@ -33,23 +34,18 @@ doMove cb m@(Move dep arr) = case at cb dep of
                            then error $ "not your turn bitch!\n" ++
                              show m ++ show col ++ show (nextMove cb)
                            else switch $ remove dep $ update arr p cb
-
 doMove cb _ = cb
 
 -- | Generate all legal moves that may be played from a given position.
 -- TODO: forbid self-checking and generate special moves.
 possibleMoves :: ChessBoard -> [Move]
-possibleMoves cb = concatMap
-                   (\n -> let pos = fromIndex n in
-                          moves pos $ at cb pos)
-                   [0..63]
+possibleMoves cb = concatMap (\p -> moves p $ at cb p) (map fromIndex [0..63])
    where
    color = nextMove cb
    moves :: Position -> Maybe Piece -> [Move]
-   moves _ Nothing = []
-   moves pos (Just (Piece col t)) = if col == color
-                                       then moves' pos t color
-                                       else []
+   moves pos = maybe [] (\(Piece col t) -> if col == color
+                                           then moves' pos t col
+                                           else [])
 
    moves' :: Position -> PieceType -> Color -> [Move]
    moves' pos@(f, r) Pawn color = concatMap toMove $
@@ -57,8 +53,8 @@ possibleMoves cb = concatMap
          filter valid advance
       where
       lastRow = if color == White then 7 else 0
-      sndRow = if color == White then 1 else 6
-      next = if color == White then succ else pred
+      sndRow  = if color == White then 1 else 6
+      next    = if color == White then succ else pred
       canTake pos = case cb `at` pos of
                          Nothing -> False
                          Just (Piece col _) -> col /= color
@@ -82,20 +78,20 @@ possibleMoves cb = concatMap
              ) destinations
       where
       destinations = filter valid
-         [(f + x, r + y) | x <- [-1,-2,1,2], y <- [-1,-2,1,2]]
+         [(f + x, r + y) | (x, y) <- sq [-2,-1,1,2] ]
 
    moves' pos Bishop color = map (Move pos) $
       reachable cb color pos
-      [bimap x y | x <- [pred, succ], y <- [pred, succ]]
+      [bimap f g | (f, g) <- sq [pred, succ] ]
 
    moves' pos Rook color = map (Move pos) $
       reachable cb color pos
-      [(id, pred), (id, succ), (pred, id), (succ, id)]
+      [bimap id pred, bimap id succ, bimap pred id, bimap succ id]
 
    moves' pos Queen color =
       moves' pos Bishop color ++ moves' pos Rook color
 
-   moves' pos@(f, r) King color = map (Move pos) $
+   moves' pos King color = map (Move pos) $
       filter (\p -> case cb `at` p of
                          -- only enemy pieces can be eaten
                          Just (Piece col _) -> col /= color
@@ -103,9 +99,7 @@ possibleMoves cb = concatMap
              ) destinations
       where
       destinations = filter valid
-         [(pred f, pred r), (pred f, r), (pred f, succ r),
-          (f, pred r), (f, succ r),
-          (succ f, pred r), (succ f, r), (succ f, succ r)]
+         [bimap f1 f2 pos | (f1, f2) <- sq [pred, id, succ] ]
 
 -- Helper function
 -- when given a depature position and a translation function, explore
@@ -114,7 +108,7 @@ possibleMoves cb = concatMap
 -- or a piece of the opposite color (in that case the square of that
 -- piece is included since it may be eaten).
 explore :: ChessBoard -> Color -> Position -> (Position -> Position)
-   -> [Position]
+        -> [Position]
 explore cb color dep translate = explore' dep []
    where
    explore' :: Position -> [Position] -> [Position]
