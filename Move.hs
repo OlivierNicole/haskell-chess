@@ -11,9 +11,9 @@ import Data.Char (ord, chr)
 data Move = Move Position Position
           | KingSideCastling Color
           | QueenSideCastling Color
-          -- a pawn promotion is defined by the arrival position of the
+          -- a pawn promotion is defined by the move of the
           -- pawn and the piece type it is promoted to.
-          | PawnPromotion Position PieceType
+          | PawnPromotion Move PieceType
    deriving (Eq)
 
 instance Show Move where
@@ -25,8 +25,7 @@ instance Show Move where
       fromRank r = chr $ r + ord '1'
    show (KingSideCastling c) = "kingside castling by " ++ show c
    show (QueenSideCastling c) = "queenside castling by " ++ show c
-   show (PawnPromotion (f, r) t) = show (Move (f, r-1) (f, r)) ++
-      ": pawn promoted to " ++ show t
+   show (PawnPromotion m t) = show m ++ ": pawn promoted to " ++ show t
 
 instance Read Move where
    readsPrec _ (f : r : f' : r' : tail) =
