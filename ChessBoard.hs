@@ -1,22 +1,26 @@
 {-# LANGUAGE BangPatterns #-}
 module ChessBoard (
-   PieceType (..),
-   Piece (Piece),
-   ChessBoard,
-   nextMove,
-   switch,
-   emptyBoard,
-   initialPosition,
-   at,
-   update,
-   remove,
-   toList) where
+     PieceType (..)
+   , Piece (Piece)
+   , ChessBoard
+   , nextMove
+   , switch
+   , emptyBoard
+   , initialPosition
+   , at
+   , update
+   , remove
+   , toList
+   , save
+   , restore
+   ) where
 
-import qualified Data.Char
+import qualified Data.Char as C
 import qualified Data.Vector as V
 import Data.List (intersperse, intercalate)
 import Color
 import Position
+import Control.Monad (liftM)
 
 data PieceType =
              Pawn
@@ -39,8 +43,22 @@ data Piece = Piece !Color !PieceType
    deriving Eq
 
 instance Show Piece where
-   show (Piece White t) = map Data.Char.toUpper $ show t
+   show (Piece White t) = map C.toUpper $ show t
    show (Piece Black t) = show t
+
+instance Read Piece where
+   readsPrec _ [c] = if lc `elem` "pnbrqk"
+                     then let color = if C.isUpper c then White else Black
+                              t     = case lc of
+                                      'p' -> Pawn
+                                      'n' -> Knight
+                                      'b' -> Bishop
+                                      'r' -> Rook
+                                      'q' -> Queen
+                                      'k' -> King
+                        in [(Piece color t, "")]
+                     else []
+      where lc = C.toLower c
 
 -- | Representation of a chess position.
 data ChessBoard = ChessBoard
@@ -79,8 +97,8 @@ instance Show ChessBoard where
                                         else ' '
       showSquare _ _ (Just p) = head $ show p
       showRank :: Int -> Char
-      showRank r = Data.Char.chr $ Data.Char.ord '1' + r
-      showFile f = Data.Char.chr $ Data.Char.ord 'a' + f
+      showRank r = C.chr $ C.ord '1' + r
+      showFile f = C.chr $ C.ord 'a' + f
       slice8 :: V.Vector a -> V.Vector (V.Vector a)
       slice8 v
          | V.null v = V.empty
@@ -140,4 +158,30 @@ remove !pos !cb
 
 toList :: ChessBoard -> [Maybe Piece]
 toList !cb = V.toList $ toVector cb
+
+-- | Produce a compact string describing the chess board, e.g. for storing to a
+-- file.
+save :: ChessBoard -> String
+save cb = map (maybe '-' (head . show)) (toList cb) ++ case nextMove cb of
+                                                       White -> "W"
+                                                       Black -> "B"
+
+-- | Construct a chess board from a string produced by 'save'.
+restore :: Monad m => String -> m ChessBoard
+restore s
+   | length s /= 65 = fail "restore: no parse (string is not 64-char long)"
+   | otherwise      = ChessBoard <$>
+        (V.fromList <$> mapM (readMaybePiece . (:[])) (take 64 s)) <*>
+        (let c = last s in case c of
+                      'W' -> return White
+                      'B' -> return Black
+                      _   -> fail $ "restore: no parse for last char " ++ [c]
+        )
+   where readMaybePiece :: Monad m => String -> m (Maybe Piece)
+         readMaybePiece [c] = case reads [c] of
+            [(p, "")] -> return $ Just p
+            _         -> if c == '-'
+                         then return Nothing
+                         else fail $ "restore: no parse on char " ++ [c]
+         readMaybePiece otherStr = fail $ "restore: no parse for " ++ otherStr
 
