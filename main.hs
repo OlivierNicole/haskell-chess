@@ -4,46 +4,38 @@ import ChessRules
 import Color
 import Decisions
 import System.IO (hFlush, stdout)
+import Input (readMaybe)
 
-depth = 4
+depth = 3
 
 main :: IO ()
-main = do
-   print initialPosition
-   prompt initialPosition
+main = game initialPosition
 
-prompt :: ChessBoard -> IO ()
-prompt cb = do
+-- | Play a game by interacting with an opponent, starting from a given
+-- situation. The opponent does the first move.
+game :: ChessBoard -> IO ()
+game cb = do
+   print cb
    putStr "input> "
    hFlush stdout
    cmd <- getLine
-   maybeCb' <- execute cmd cb
-   maybe (return ()) prompt maybeCb'
+   execute cb cmd
 
-execute :: String -> ChessBoard -> IO (Maybe ChessBoard)
-execute "quit" _ = putStrLn "Bye!" >> return Nothing
-execute "eval" cb = do
+execute :: ChessBoard -> String -> IO ()
+execute _ "quit" = putStrLn "Bye!"
+execute cb "eval" = do
    print $ advantage White depth cb
-   return $ Just cb
-execute str cb = case readMaybe str of
-   Nothing -> do putStrLn "Invalid input."
-                 return $ Just cb
+   game cb
+execute cb str = case readMaybe str of
+   Nothing -> putStrLn "Invalid input." >> game cb
    Just m -> if not $ legal cb m
-             then do
-                putStrLn "Illegal move."
-                return $ Just cb
+             then putStrLn "Illegal move." >> game cb
              else do
-                let cb' = doMove cb m
-                print cb'
-                putStrLn "I'm thinking..."
-                let myMove = bestMove depth cb'
-                    newCb  = doMove cb' myMove
-                print newCb
-                putStrLn $ "My move: " ++ show myMove
-                return $ Just newCb
-
-readMaybe :: (Read a) => String -> Maybe a
-readMaybe s = case reads s of
-                   [(x, "")] -> Just x
-                   _ -> Nothing
+               let cb' = doMove cb m
+               print cb'
+               putStrLn "I'm thinking..."
+               let myMove = bestMove depth cb'
+                   cb''   = doMove cb' myMove
+               putStrLn $ "My move: " ++ show myMove
+               game cb''
 

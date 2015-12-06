@@ -39,7 +39,7 @@ doMove cb _ = cb
 -- | Generate all legal moves that may be played from a given position.
 -- TODO: forbid self-checking and generate special moves.
 possibleMoves :: ChessBoard -> [Move]
-possibleMoves cb = concatMap (\p -> moves p $ at cb p) (map fromIndex [0..63])
+possibleMoves cb = concatMap ((\p -> moves p $ at cb p) . fromIndex) [0..63]
    where
    color = nextMove cb
    moves :: Position -> Maybe Piece -> [Move]
