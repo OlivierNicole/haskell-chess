@@ -13,6 +13,7 @@ module ChessBoard (
    , toList
    , save
    , restore
+   , chessMap
    ) where
 
 import qualified Data.Char as C
@@ -184,4 +185,8 @@ restore s
                          then return Nothing
                          else fail $ "restore: no parse on char " ++ [c]
          readMaybePiece otherStr = fail $ "restore: no parse for " ++ otherStr
+
+-- | 'chessMap f cb' maps 'f' to every position of the ChessBoard.
+chessMap :: (Position -> a) -> ChessBoard -> [a]
+chessMap f cb = map (f . fromIndex) [0..63]
 

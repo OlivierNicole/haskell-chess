@@ -34,72 +34,58 @@ doMove cb m@(Move dep arr) = case at cb dep of
                            then error $ "not your turn bitch!\n" ++
                              show m ++ show col ++ show (nextMove cb)
                            else switch $ remove dep $ update arr p cb
-doMove cb _ = cb
+doMove cb _ = cb -- TODO
 
--- | Generate all legal moves that may be played from a given position.
+-- | Generate all legal, regular moves starting from a given square.
+localMoves :: Position -> ChessBoard -> [Move]
+localMoves pos@(f,r) cb = case cb `at` pos of
+   Nothing -> []
+   Just (Piece col t) -> if col /= nextMove cb
+      then []
+      else case t of
+      Pawn -> concatMap mkMove $
+              filter (\p -> valid p && canTake p) [(f - 1, next r), (f + 1, next r)]
+              ++ filter valid advance
+         where
+         canTake = maybe False (\(Piece col' _) -> col /= col') . at cb
+         next = if col == White then succ else pred
+         advance = if r == sndRow
+                   then [p' | r' <- [next r, next (next r)]
+                            , let p' = (f, r')
+                            , isNothing $ cb `at` p']
+                   else if isNothing $ cb `at` (f, next r)
+                        then [(f, next r)]
+                        else []
+         mkMove arr@(f', r') = if next r == lastRow
+            then [PawnPromotion (Move (f,r) (f',r')) t
+                       | t <- [Knight, Bishop, Rook, Queen] ]
+            else [Move pos arr]
+         sndRow  = if col == White then 1 else 6
+         lastRow = if col == White then 7 else 0
+      Knight -> map (Move pos) [(f + x, r + y)
+         | (x, y) <- sq [-2,-1,1,2]
+         , valid (f+x,r+y)
+         , maybe True (\(Piece col' _) -> col /= col') $ cb `at` (f+x,r+y)
+         ]
+      Bishop -> map (Move pos) $
+         reachable cb col pos [bimap f g | (f,g) <- sq [pred, succ] ]
+      Rook -> map (Move pos) $
+         reachable cb col pos
+         [bimap id pred, bimap id succ, bimap pred id, bimap succ id]
+      Queen -> map (Move pos) $
+         reachable cb col pos $
+         [bimap f g | (f,g) <- sq [pred, succ] ] ++
+         [bimap id pred, bimap id succ, bimap pred id, bimap succ id]
+      King -> map (Move pos) $
+         [p
+         | (f, g) <- sq [pred, id, succ], let p = bimap f g pos
+         , valid p
+         , maybe True (\(Piece col' _) -> col /= col') $ cb `at` p]
+
+-- | Generate all legal moves that may be played on a given ChessBoard.
 -- TODO: forbid self-checking and generate special moves.
 possibleMoves :: ChessBoard -> [Move]
-possibleMoves cb = concatMap ((\p -> moves p $ at cb p) . fromIndex) [0..63]
-   where
-   color = nextMove cb
-   moves :: Position -> Maybe Piece -> [Move]
-   moves pos = maybe [] (\(Piece col t) -> if col == color
-                                           then moves' pos t col
-                                           else [])
-
-   moves' :: Position -> PieceType -> Color -> [Move]
-   moves' pos@(f, r) Pawn color = concatMap toMove $
-         filter canTake (filter valid [(f - 1, next r), (f + 1, next r)]) ++
-         filter valid advance
-      where
-      lastRow = if color == White then 7 else 0
-      sndRow  = if color == White then 1 else 6
-      next    = if color == White then succ else pred
-      canTake pos = case cb `at` pos of
-                         Nothing -> False
-                         Just (Piece col _) -> col /= color
-      advance = if isNothing $ cb `at` (f, next r)
-                   then (f, next r) :
-                     (let j = (f, next $ next r) in
-                        [j | r == sndRow && isNothing (cb `at` j)])
-                   else []
-      toMove arr@(f, r)
---         | next r == lastRow =
---            map (PawnPromotion (f, next r)) [Knight, Bishop, Rook,
---               Queen]
---         | otherwise = [Move pos arr]
-            = [Move pos arr]
-
-   moves' pos@(f, r) Knight color = map (Move pos) $
-      filter (\p -> case cb `at` p of
-                         -- only enemy pieces can be eaten
-                         Just (Piece col _) -> col /= color
-                         _ -> True -- arrival square is empty
-             ) destinations
-      where
-      destinations = filter valid
-         [(f + x, r + y) | (x, y) <- sq [-2,-1,1,2] ]
-
-   moves' pos Bishop color = map (Move pos) $
-      reachable cb color pos
-      [bimap f g | (f, g) <- sq [pred, succ] ]
-
-   moves' pos Rook color = map (Move pos) $
-      reachable cb color pos
-      [bimap id pred, bimap id succ, bimap pred id, bimap succ id]
-
-   moves' pos Queen color =
-      moves' pos Bishop color ++ moves' pos Rook color
-
-   moves' pos King color = map (Move pos) $
-      filter (\p -> case cb `at` p of
-                         -- only enemy pieces can be eaten
-                         Just (Piece col _) -> col /= color
-                         _ -> True -- arrival square is empty
-             ) destinations
-      where
-      destinations = filter valid
-         [bimap f1 f2 pos | (f1, f2) <- sq [pred, id, succ] ]
+possibleMoves cb = concat . chessMap (flip localMoves cb) $ cb
 
 -- Helper function
 -- when given a depature position and a translation function, explore
